@@ -88,11 +88,15 @@
   .jshot .shot-sub { color: #1e3a5f; }
 
   /* ACTION BAR */
-  .bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 1px solid var(--border); padding: 10px 14px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 8px; }
+  .bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 1px solid var(--border); padding: 10px 14px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 6px; }
   .btn-take { flex: 2; background: var(--red); border: none; border-radius: 6px; color: #fff; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; padding: 13px 4px; text-transform: uppercase; cursor: pointer; transition: transform 0.1s; }
   .btn-take:active { opacity: 0.85; transform: scale(0.98); }
   .btn-reset { flex: 1; background: #111; border: 1px solid var(--border2); border-radius: 6px; color: var(--text-dim); font-family: var(--mono); font-size: 12px; padding: 13px 4px; text-transform: uppercase; cursor: pointer; }
   .btn-reset:active { opacity: 0.7; }
+  .btn-save { flex: 1; background: #111; border: 1px solid #2a3a2a; border-radius: 6px; color: #5a9a5a; font-family: var(--mono); font-size: 12px; padding: 13px 4px; text-transform: uppercase; cursor: pointer; transition: opacity 0.1s; }
+  .btn-save:active { opacity: 0.7; }
+  .btn-copy { flex: 1; background: #111; border: 1px solid var(--blue-dim); border-radius: 6px; color: var(--blue-pale); font-family: var(--mono); font-size: 12px; padding: 13px 4px; text-transform: uppercase; cursor: pointer; transition: opacity 0.1s; }
+  .btn-copy:active { opacity: 0.7; }
 
   /* TOAST */
   .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: #111; border: 1px solid var(--border2); border-radius: 20px; padding: 8px 20px; font-size: 11px; color: var(--text-dim); white-space: nowrap; z-index: 999; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
@@ -111,7 +115,9 @@
 
 <div class="bar">
   <button class="btn-take" onclick="bump()">+1 TAKE</button>
-  <button class="btn-reset" onclick="reset()">↺ RESET</button>
+  <button class="btn-save" onclick="saveEntry()">⊙ SAVE</button>
+  <button class="btn-copy" onclick="copyData()">⇊ COPY</button>
+  <button class="btn-reset" onclick="reset()">↺ RST</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -177,6 +183,59 @@ function reset() {
   render();
 }
 
+var history = [];
+
+function saveEntry() {
+  var entry;
+  if (mode === 'full')  entry = Object.assign({mode:'full',  ts: new Date().toISOString()}, s.full);
+  if (mode === 'quick') entry = Object.assign({mode:'quick', ts: new Date().toISOString()}, s.quick);
+  if (mode === 'jove')  entry = Object.assign({mode:'jove',  ts: new Date().toISOString()}, s.jove);
+  history.push(entry);
+  try { localStorage.setItem('slate_history', JSON.stringify(history)); } catch(e) {}
+  toast('Saved #' + history.length);
+}
+
+function copyData() {
+  var lines = [];
+  var d = new Date().toLocaleString('pt-BR');
+  lines.push('SLATE — ' + d);
+  if (mode === 'full') {
+    var f = s.full;
+    lines.push('Produção: ' + f.prod);
+    lines.push('Diretor: ' + f.dir + '  |  DOP: ' + f.dop + '  |  FPS: ' + f.fps);
+    lines.push('Cena: ' + f.scene + '  |  Take: ' + f.take + '  |  Câmera: ' + f.cam);
+    lines.push('Slate: ' + f.slate + '  |  Roll: ' + f.roll + '  |  Lens: ' + f.lens);
+    lines.push(f.ie + ' · ' + f.dn + ' · ' + f.ms);
+    if (f.notes && f.notes !== '—') lines.push('Notes: ' + f.notes);
+  } else if (mode === 'quick') {
+    var q = s.quick;
+    lines.push('Cena: ' + q.scene + '  |  Take: ' + q.take + '  |  Slate: ' + q.slate);
+    if (q.notes && q.notes !== '—') lines.push('Notes: ' + q.notes);
+  } else if (mode === 'jove') {
+    var j = s.jove;
+    lines.push('Protocolo: ' + j.title);
+    lines.push('PI: ' + j.pi + '  |  Lab: ' + j.lab);
+    lines.push('Shot: ' + j.shot + '  |  Take: ' + j.take);
+    lines.push('Passo: ' + j.step);
+    lines.push(j.ctrl);
+    if (j.notes && j.notes !== '—') lines.push('Notes: ' + j.notes);
+  }
+  var txt = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function(){ toast('Copiado!'); }).catch(function(){ fallbackCopy(txt); });
+  } else {
+    fallbackCopy(txt);
+  }
+}
+
+function fallbackCopy(txt) {
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('Copiado!'); } catch(e) { toast('Erro ao copiar'); }
+  document.body.removeChild(ta);
+}
+
 function toast(msg) {
   var el = document.getElementById('toast');
   el.textContent = msg;
@@ -184,6 +243,11 @@ function toast(msg) {
   clearTimeout(el._t);
   el._t = setTimeout(function(){ el.className = 'toast'; }, 2000);
 }
+
+try {
+  var saved = localStorage.getItem('slate_history');
+  if (saved) history = JSON.parse(saved);
+} catch(e) {}
 
 function setMode(m) {
   mode = m;
