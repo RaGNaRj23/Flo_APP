@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slate">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#080808">
+<title>Slate</title>
+<style>
+  :root {
+    --bg: #080808;
+    --bg2: #0e0e0e;
+    --bg3: #141414;
+    --border: #1f1f1f;
+    --border2: #2a2a2a;
+    --red: #d44000;
+    --red-dim: rgba(212,64,0,0.15);
+    --red-hot: #ff6b2b;
+    --blue: #3a7bd5;
+    --blue-dim: #2d5a8a;
+    --blue-pale: #6ea3d8;
+    --text: #e2e2e2;
+    --text-dim: #888;
+    --text-ghost: #333;
+    --mono: 'Courier New', Courier, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+  /* NAV */
+  .nav { display: flex; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .nav-btn { flex: 1; padding: 13px 4px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; background: none; border: none; border-bottom: 2px solid transparent; color: #444; cursor: pointer; transition: color 0.15s; }
+  .nav-btn.on { color: var(--red); border-bottom-color: var(--red); }
+
+  /* SCROLL AREA */
+  .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 14px 100px; }
+
+  /* CARD */
+  .card { background: var(--bg2); border: 1px solid #1c1c1c; border-radius: 10px; overflow: hidden; }
+
+  /* DATE STRIP */
+  .dstrip { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+  .dstrip span { font-size: 9px; letter-spacing: 0.06em; color: var(--text-ghost); }
+  .rec { color: #2a2a2a !important; }
+
+  /* HEADER GRID */
+  .hgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+
+  /* SHOT DISPLAY */
+  .shot { background: #050505; text-align: center; padding: 10px 12px 4px; border-bottom: 1px solid var(--border); }
+  .shot-num { display: block; font-size: 64px; font-weight: 700; letter-spacing: 0.04em; line-height: 1; color: var(--red); word-break: break-all; transition: color 0.2s; }
+  .shot-sub { display: block; font-size: 7px; letter-spacing: 0.2em; color: var(--text-ghost); padding: 4px 0 8px; }
+
+  /* FIELD */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: #444; }
+  .field label.b { color: var(--blue-dim); }
+  .field input { font-family: var(--mono); background: transparent; border: none; border-bottom: 1px solid var(--border2); outline: none; padding: 2px 0; caret-color: var(--red); color: var(--text); font-size: 15px; width: 100%; -webkit-appearance: none; }
+
+  /* ROWS */
+  .row { display: grid; border-bottom: 1px solid var(--border); }
+  .row.last { border-bottom: none; }
+  .cell { padding: 8px 11px; border-right: 1px solid var(--border); }
+  .cell.last { border-right: none; }
+  .cell.center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cell-label { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+
+  /* TOGGLE */
+  .togs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tog { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; padding: 5px 8px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: #444; cursor: pointer; transition: all 0.1s; }
+  .tog.on { border-color: var(--red); background: var(--red-dim); color: var(--red-hot); }
+
+  /* NOTES */
+  .notes-wrap { padding: 9px 11px; }
+
+  /* JOVE SPECIFIC */
+  .jhdr { background: #07101c; padding: 10px 12px; border-bottom: 1px solid #1a2535; }
+  .jlabel { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--blue-dim); margin-bottom: 5px; }
+  .jtitle { font-family: var(--mono); font-size: 14px; color: #a8c4e0; background: transparent; border: none; border-bottom: 1px solid #1a2535; outline: none; padding: 2px 0; width: 100%; caret-color: var(--blue); -webkit-appearance: none; }
+  .jgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+  .jshot { background: #030a14; }
+  .jshot .shot-num { color: var(--blue); }
+  .jshot .shot-sub { color: #1e3a5f; }
+
+  /* ACTION BAR */
+  .bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 1px solid var(--border); padding: 10px 14px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 8px; }
+  .btn-take { flex: 2; background: var(--red); border: none; border-radius: 6px; color: #fff; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; padding: 13px 4px; text-transform: uppercase; cursor: pointer; transition: transform 0.1s; }
+  .btn-take:active { opacity: 0.85; transform: scale(0.98); }
+  .btn-reset { flex: 1; background: #111; border: 1px solid var(--border2); border-radius: 6px; color: var(--text-dim); font-family: var(--mono); font-size: 12px; padding: 13px 4px; text-transform: uppercase; cursor: pointer; }
+  .btn-reset:active { opacity: 0.7; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: #111; border: 1px solid var(--border2); border-radius: 20px; padding: 8px 20px; font-size: 11px; color: var(--text-dim); white-space: nowrap; z-index: 999; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button class="nav-btn on" id="tab-full" onclick="setMode('full')">Full Slate</button>
+  <button class="nav-btn" id="tab-quick" onclick="setMode('quick')">Quick</button>
+  <button class="nav-btn" id="tab-jove" onclick="setMode('jove')">JoVE</button>
+</div>
+
+<div class="scroll" id="content"></div>
+
+<div class="bar">
+  <button class="btn-take" onclick="bump()">+1 TAKE</button>
+  <button class="btn-reset" onclick="reset()">↺ RESET</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var mode = 'full';
+var s = {
+  full:  { prod:'My Project', dir:'—', dop:'—', fps:'25', slate:'A1', roll:'1', scene:'1', take:'1', cam:'A', lens:'—', ie:'INT', dn:'DAY', ms:'SYNC', notes:'—' },
+  quick: { scene:'1', take:'1', slate:'A1', notes:'—' },
+  jove:  { title:'Protocol Title', pi:'—', lab:'—', id:'—', shot:'S1', take:'1', step:'Step 1.1', cam:'—', mag:'—', org:'—', cond:'—', ctrl:'CTRL', notes:'—' }
+};
+
+var dtStr = '';
+function tick() {
+  var n = new Date();
+  var d = n.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+  var t = n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  dtStr = d + ' — ' + t;
+  var els = document.querySelectorAll('.dt');
+  for(var i=0;i<els.length;i++) els[i].textContent = dtStr;
+}
+tick();
+setInterval(tick, 10000);
+
+function esc(v) { return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function field(m, k, label, val, size, color, blue) {
+  var lc = blue ? ' b' : '';
+  var cs = color ? 'color:'+color+';' : '';
+  var fs = 'font-size:'+(size||15)+'px;';
+  return '<div class="field"><label class="'+lc+'">'+label+'</label>' +
+    '<input type="text" value="'+esc(val)+'" style="'+fs+cs+'" ' +
+    'oninput="s.'+m+'.'+k+'=this.value;updateShot()" ' +
+    'onblur="s.'+m+'.'+k+'=this.value;updateShot()" /></div>';
+}
+
+function tog(m, k, opts, val) {
+  return '<div class="togs">'+opts.map(function(o){
+    return '<button class="tog'+(val===o?' on':'')+'" onclick="s.'+m+'.'+k+'=\''+o+'\';render()">'+o+'</button>';
+  }).join('')+'</div>';
+}
+
+function updateShot() {
+  var el = document.getElementById('snum');
+  if (!el) return;
+  if (mode==='full')  el.textContent = s.full.scene+'.'+s.full.take+'.'+s.full.cam;
+  if (mode==='quick') el.textContent = s.quick.scene+'.'+s.quick.take;
+  if (mode==='jove')  el.textContent = s.jove.shot+'.'+s.jove.take;
+}
+
+function bump() {
+  if (mode==='full')  { var n=(parseInt(s.full.take)||0)+1; s.full.take=''+n; toast('Take → '+n); }
+  if (mode==='quick') { var n=(parseInt(s.quick.take)||0)+1; s.quick.take=''+n; toast('Take → '+n); }
+  if (mode==='jove')  { var n=(parseInt(s.jove.take)||0)+1; s.jove.take=''+n; toast('Take → '+n); }
+  render();
+}
+
+function reset() {
+  if (mode==='full')  s.full  = {prod:'My Project',dir:'—',dop:'—',fps:'25',slate:'A1',roll:'1',scene:'1',take:'1',cam:'A',lens:'—',ie:'INT',dn:'DAY',ms:'SYNC',notes:'—'};
+  if (mode==='quick') s.quick = {scene:'1',take:'1',slate:'A1',notes:'—'};
+  if (mode==='jove')  s.jove  = {title:'Protocol Title',pi:'—',lab:'—',id:'—',shot:'S1',take:'1',step:'Step 1.1',cam:'—',mag:'—',org:'—',cond:'—',ctrl:'CTRL',notes:'—'};
+  toast('Reset');
+  render();
+}
+
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.className = 'toast'; }, 2000);
+}
+
+function setMode(m) {
+  mode = m;
+  ['full','quick','jove'].forEach(function(x){
+    document.getElementById('tab-'+x).className = 'nav-btn'+(x===m?' on':'');
+  });
+  render();
+}
+
+function render() {
+  var f = s.full, q = s.quick, j = s.jove;
+  var h = '';
+
+  if (mode === 'full') {
+    h = '<div class="card">'+
+      '<div class="dstrip"><span class="dt">'+dtStr+'</span><span class="rec">▸ REC</span></div>'+
+      '<div class="hgrid">'+
+        field('full','prod','Production',f.prod)+
+        field('full','dir','Director',f.dir)+
+        field('full','dop','DOP',f.dop)+
+        field('full','fps','FPS',f.fps)+
+      '</div>'+
+      '<div class="shot"><span class="shot-num" id="snum">'+f.scene+'.'+f.take+'.'+f.cam+'</span><span class="shot-sub">SCÈNE · TAKE · CAM</span></div>'+
+      '<div class="row" style="grid-template-columns:repeat(4,1fr)">'+
+        '<div class="cell">'+field('full','slate','Slate',f.slate,20)+'</div>'+
+        '<div class="cell">'+field('full','roll','Roll',f.roll,20)+'</div>'+
+        '<div class="cell">'+field('full','scene','Scene',f.scene,20)+'</div>'+
+        '<div class="cell last">'+field('full','take','Take',f.take,20)+'</div>'+
+      '</div>'+
+      '<div class="row" style="grid-template-columns:1fr 2fr">'+
+        '<div class="cell">'+field('full','cam','Camera',f.cam,28)+'</div>'+
+        '<div class="cell last">'+field('full','lens','Lens',f.lens,13)+'</div>'+
+      '</div>'+
+      '<div class="row" style="grid-template-columns:repeat(3,1fr)">'+
+        '<div class="cell center"><span class="cell-label">INT/EXT</span>'+tog('full','ie',['INT','EXT'],f.ie)+'</div>'+
+        '<div class="cell center"><span class="cell-label">DAY/NIGHT</span>'+tog('full','dn',['DAY','NIGHT'],f.dn)+'</div>'+
+        '<div class="cell center last"><span class="cell-label">MOS/SYNC</span>'+tog('full','ms',['MOS','SYNC'],f.ms)+'</div>'+
+      '</div>'+
+      '<div class="notes-wrap">'+field('full','notes','Notes',f.notes,12,'#666')+'</div>'+
+    '</div>';
+  }
+
+  if (mode === 'quick') {
+    h = '<div class="card">'+
+      '<div class="dstrip"><span class="dt">'+dtStr+'</span></div>'+
+      '<div class="shot"><span class="shot-num" id="snum" style="font-size:82px">'+q.scene+'.'+q.take+'</span><span class="shot-sub">SCÈNE · TAKE</span></div>'+
+      '<div class="row" style="grid-template-columns:1fr 1fr">'+
+        '<div class="cell">'+field('quick','scene','Scene',q.scene,46)+'</div>'+
+        '<div class="cell last">'+field('quick','take','Take',q.take,46)+'</div>'+
+      '</div>'+
+      '<div class="row last" style="grid-template-columns:1fr 1fr">'+
+        '<div class="cell">'+field('quick','slate','Slate',q.slate,14)+'</div>'+
+        '<div class="cell last">'+field('quick','notes','Notes',q.notes,12,'#666')+'</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  if (mode === 'jove') {
+    h = '<div class="card">'+
+      '<div class="jhdr"><div class="jlabel">JoVE · Scientific Protocol</div>'+
+        '<input class="jtitle" type="text" value="'+esc(j.title)+'" oninput="s.jove.title=this.value" />'+
+      '</div>'+
+      '<div class="dstrip"><span class="dt">'+dtStr+'</span><span style="font-size:9px;letter-spacing:0.1em;color:#2d5a8a">JoVE</span></div>'+
+      '<div class="jgrid">'+
+        field('jove','pi','PI / Auteur',j.pi,12,'#6ea3d8',true)+
+        field('jove','lab','Laboratoire',j.lab,12,'#6ea3d8',true)+
+      '</div>'+
+      '<div class="shot jshot"><span class="shot-num" id="snum" style="font-size:58px">'+j.shot+'.'+j.take+'</span><span class="shot-sub">SHOT · TAKE</span></div>'+
+      '<div class="row" style="grid-template-columns:1fr 1fr 1fr">'+
+        '<div class="cell">'+field('jove','id','Article ID',j.id,13,'#5090cc',true)+'</div>'+
+        '<div class="cell">'+field('jove','shot','Shot',j.shot,22,'#d44000',true)+'</div>'+
+        '<div class="cell last">'+field('jove','take','Take',j.take,22,'#d44000',true)+'</div>'+
+      '</div>'+
+      '<div class="row" style="grid-template-columns:1fr"><div class="cell last">'+field('jove','step','Étape protocole',j.step,12,'#6ea3d8',true)+'</div></div>'+
+      '<div class="row" style="grid-template-columns:1fr 1fr">'+
+        '<div class="cell">'+field('jove','cam','Câmera/FPS',j.cam,12,'',true)+'</div>'+
+        '<div class="cell last">'+field('jove','mag','Grossissement',j.mag,12,'',true)+'</div>'+
+      '</div>'+
+      '<div class="row" style="grid-template-columns:1fr 1fr">'+
+        '<div class="cell">'+field('jove','org','Organismo',j.org,12,'',true)+'</div>'+
+        '<div class="cell last">'+field('jove','cond','Condição',j.cond,12,'',true)+'</div>'+
+      '</div>'+
+      '<div class="row last" style="grid-template-columns:1fr 1fr">'+
+        '<div class="cell">'+field('jove','pi','Vidéaste',j.pi,12,'#6ea3d8',true)+'</div>'+
+        '<div class="cell last"><span class="cell-label" style="color:#2d5a8a;display:block;margin-bottom:5px">CTRL/SAMPLE</span>'+tog('jove','ctrl',['CTRL','SAMPLE'],j.ctrl)+'</div>'+
+      '</div>'+
+      '<div class="notes-wrap">'+field('jove','notes','Notes protocole',j.notes,12,'#666',true)+'</div>'+
+    '</div>';
+  }
+
+  document.getElementById('content').innerHTML = h;
+}
+render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      }, err => {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+  });
+}
+</script>
+</body>
+</html>
